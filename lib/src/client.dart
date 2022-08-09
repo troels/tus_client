@@ -95,7 +95,7 @@ class TusClient {
   /// [ProtocolException] on server error
   upload({
     Function(int)? onProgress,
-    Function(String? uid)? onComplete,
+    dynamic Function(String? uid)? onComplete,
   }) async {
     await create();
 
@@ -142,7 +142,7 @@ class TusClient {
       }
     }
     if (onComplete != null) {
-      onComplete();
+      onComplete(_uid);
     }
   }
 
