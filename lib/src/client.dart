@@ -92,7 +92,7 @@ class TusClient {
   /// Start or resume an upload in chunks of [maxChunkSize] throwing
   /// [ProtocolException] on server error
   upload({
-    Function(num)? onProgress,
+    Function(double)? onProgress,
     dynamic Function(String? uid)? onComplete,
   }) async {
     await create();
@@ -114,11 +114,8 @@ class TusClient {
         break;
       }
 
-      _chunkPatchFuture = client.patch(
-        _uploadUrl as Uri,
-        headers: uploadHeaders,
-        body: body
-      );
+      _chunkPatchFuture =
+          client.patch(_uploadUrl as Uri, headers: uploadHeaders, body: body);
       final response = await _chunkPatchFuture;
       _chunkPatchFuture = null;
 
