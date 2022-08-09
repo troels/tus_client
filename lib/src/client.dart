@@ -33,8 +33,6 @@ class TusClient {
 
   Uri? _uploadUrl;
 
-  int? _offset;
-
   Future? _chunkPatchFuture;
 
   TusClient(
@@ -94,13 +92,13 @@ class TusClient {
   /// Start or resume an upload in chunks of [maxChunkSize] throwing
   /// [ProtocolException] on server error
   upload({
-    Function(int)? onProgress,
+    Function(num)? onProgress,
     dynamic Function(String? uid)? onComplete,
   }) async {
     await create();
 
     // get offset from server
-    _offset = await _getOffset();
+    int offset = await _getOffset();
 
     // start upload
     final client = getHttpClient();
@@ -108,17 +106,23 @@ class TusClient {
     while (!_finishedUpload()) {
       final uploadHeaders = {
         "Tus-Resumable": tusVersion,
-        "Upload-Offset": "$_offset",
+        "Upload-Offset": "$offset",
         "Content-Type": "application/offset+octet-stream"
       };
+      final body = await _getData();
+      if (body == null) {
+        break;
+      }
 
       _chunkPatchFuture = client.patch(
         _uploadUrl as Uri,
         headers: uploadHeaders,
-        body: await _getData(),
+        body: body
       );
       final response = await _chunkPatchFuture;
       _chunkPatchFuture = null;
+
+      offset += body.length;
 
       // check if correctly uploaded
       if (!(response.statusCode >= 200 && response.statusCode < 300)) {
@@ -126,19 +130,19 @@ class TusClient {
             "unexpected status code (${response.statusCode}) while uploading chunk");
       }
 
-      // int? serverOffset = _parseOffset(response.headers["upload-offset"]);
-      // if (serverOffset == null) {
-      //   throw ProtocolException(
-      //       "response to PATCH request contains no or invalid Upload-Offset header");
-      // }
-      // if (_offset != serverOffset) {
-      //   throw ProtocolException(
-      //       "response contains different Upload-Offset value ($serverOffset) than expected ($_offset)");
-      // }
+      int? serverOffset = _parseOffset(response.headers["upload-offset"]);
+      if (serverOffset == null) {
+        throw ProtocolException(
+            "response to PATCH request contains no or invalid Upload-Offset header");
+      }
+      if (offset != serverOffset) {
+        throw ProtocolException(
+            "response contains different Upload-Offset value ($serverOffset) than expected ($offset)");
+      }
 
       // update progress
       if (onProgress != null) {
-        onProgress(_offset ?? 0);
+        onProgress(offset / totalLength);
       }
     }
     if (onComplete != null) {
