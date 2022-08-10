@@ -18,7 +18,6 @@ class TusClient {
   final Uri url = Uri.parse(
       "https://zzqlztbqjgtnxqlvviqf.functions.supabase.co/create-upload-link");
 
-  final List<XFile?> fileList;
   final int totalLength;
   Future<Uint8List?> Function() getNextPiece;
   final Map<String, String>? metadata;
@@ -41,7 +40,7 @@ class TusClient {
     this.headers,
     this.metadata = const {},
     this.chunkSize = 5 * 1024 * 1024,
-  }) : fileList = <XFile?>[] {
+  }) {
     _uploadMetadata = generateMetadata();
   }
 
@@ -75,7 +74,6 @@ class TusClient {
 
     _uid = response.headers["stream-media-id"];
 
-    print(response.headers);
     String urlStr = response.headers["location"] ?? "";
     if (urlStr.isEmpty) {
       throw ProtocolException(
@@ -83,10 +81,6 @@ class TusClient {
     }
 
     _uploadUrl = _parseUrl(urlStr);
-  }
-
-  void addFile(XFile? file) {
-    fileList.add(file);
   }
 
   /// Start or resume an upload in chunks of [maxChunkSize] throwing
